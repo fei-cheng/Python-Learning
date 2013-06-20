@@ -1,3 +1,3 @@
 python-learning
 ===============
-some codes when I study python.
+Sample codes when I study python.
