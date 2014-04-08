@@ -1,10 +1,11 @@
 import math
 
 """
-    input: A 2-gram string, letters belong to '0~9'. 10^2=100 kinds of permutaion
-    output: A 2-gram string, letters belong to '0~9' and 'A~F'. (10+26)^2=1296 kinds of permutaion
+    Requirements:
+        input: A 2-gram string, letters belong to '0~9'. 10^2=100 kinds of permutaion
+        output: A 2-gram string, letters belong to '0~9' and 'A~F'. (10+26)^2=1296 kinds of permutaion
 
-    author: fei.cheng
+    Author: fei.cheng
 """
 
 PI = math.pi
