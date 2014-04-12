@@ -20,17 +20,20 @@ def SiftDown(T, n):
             break
 
 def HeapSort(Values):
-    ArrayList = [len(Values)] + Values
-    for
-    
-
+    length = len(Values)
+    ArrayList = [length] + Values
+    for i in range(2, length+1):
+	SiftUp(ArrayList, i)
+    for j in range(length, 1, -1):
+	ArrayList[1], ArrayList[j] = ArrayList[j], ArrayList[1]
+	SiftDown(ArrayList, j-1)
     return ArrayList[1:]
 
 
-
 def test():
-    Values = [1, 2, 3]
+    Values = [8, 9, 7, 1, 5, 6, 2, 4, 3, 0]
     print HeapSort(Values)
 
 if __name__ == '__main__':
     test()
+
