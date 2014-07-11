@@ -113,7 +113,37 @@ def getRecommendations(prefs, person, similarity=sim_pearson):
     rankings.reverse()
     return rankings
     
+def calculateSimilarItems(itemPrefs, n=10, similarity=sim_distance):
+    """
+        Here, itemPrefs = tansformDict(prefs).
+    """
+    result = {}
+    for item in itemPrefs:
+        scores = topMatches(itemPrefs, item, n, similarity)
+        result[item] = scores
+    return result
 
+def getRecommendedItems(prefs, itemMatch, user):
+    totalSim = {}
+    totalScore = {}
+    userRatings = prefs[user]
     
+    for (item, rating) in userRatings.items():
+        for (similarity, sim_item) in itemMatch[item]:
+            if sim_item in userRatings:
+                continue
+                
+            totalSim.setdefault(sim_item, 0)
+            totalSim[sim_item] += similarity
+            
+            totalScore.setdefault(sim_item, 0)
+            totalScore[sim_item] += similarity * rating
+            
+    rankings = [(score/totalSim[item], item) for (item, score) in totalScore.items()]
+    
+    rankings.sort()
+    rankings.reverse()
+    return rankings
+
 if __name__ == '__main__':
-    print getRecommendations(critics, 'Toby', similarity=sim_pearson)
+    print getRecommendedItems(critics, calculateSimilarItems(tansformDict(critics)), 'Toby')
