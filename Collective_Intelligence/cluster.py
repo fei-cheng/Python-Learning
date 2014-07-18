@@ -1,0 +1,181 @@
+from math import sqrt
+import Image,ImageDraw
+
+def readfile(filename):
+    """
+        In the file, the first row is title and the first column is name.
+    """
+    delt = '\t'
+    lines = [line for line in file(filename)]
+    
+    data = []
+    rownames = []
+    colnames = lines[0].strip().split(delt)[1:]
+    for line in lines[1:]:
+        p = line.strip().split(delt)
+        rownames.append(p[0])
+        data.append([float(x) for x in p[1:]])
+        
+    return rownames, colnames, data
+    
+    
+def pearson(v1, v2):
+    """
+        The more similar the items are, the smaller the result is.
+    """
+    sum1 = sum(v1)
+    sum2 = sum(v2)
+    
+    sum1Sq = sum([pow(v, 2) for v in v1])
+    sum2Sq = sum([pow(v, 2) for v in v2])
+    
+    pSum = sum( [v1[i]*v2[i] for i in range(len(v1))] )
+    
+    # Calculate r (Pearson score)
+    n = len(v1)
+    num = n * pSum - sum1 * sum2
+    den = sqrt( (n * sum1Sq - pow(sum1, 2)) * (n * sum2Sq - pow(sum2, 2)) )
+    
+    if den == 0:
+        return 0
+    return 1.0 - num / den
+    
+    
+class bicluster:
+  def __init__(self, vec, left=None, right=None, distance=0.0, id=None):
+    """
+        The "distance" here means the distance between its left child and right child.
+    """
+    self.id = id
+    self.vec = vec
+    self.left = left
+    self.right = right
+    self.distance = distance
+    
+    
+def hcluster(rows, distance=pearson):
+    distances = {}
+    currentclustid = -1
+    
+    clust = [bicluster(rows[i], id=i) for i in range(len(rows))]
+    
+    while len(clust) > 1:
+        length = len(clust)
+        lowestpair = (0, 1)
+        closest = distance(clust[0].vec, clust[1].vec)
+        
+        vec_len = len(clust[0].vec)
+        for i in range(length):
+            for j in range(i+1, length):
+                # distances is the cache of distance calculations
+                if (clust[i].id, clust[j].id) not in distances:
+                    distances[(clust[i].id, clust[j].id)] = distance(clust[i].vec, clust[j].vec)
+                dist = distances[(clust[i].id, clust[j].id)]
+                
+                if dist < closest:
+                    closest = dist
+                    lowestpair = (i, j)
+        left_child = clust[lowestpair[0]]
+        right_child = clust[lowestpair[1]]
+        merge_vec = [ (left_child.vec[i] + right_child.vec[i]) / 2.0 for i in range(vec_len)]
+                
+        # create the new cluster
+        new_cluster = bicluster(merge_vec, left=left_child, right=right_child, distance=closest, id=currentclustid)
+                
+        # cluster id is negative if it is not in the original set
+        currentclustid -= 1
+        # the order below can't be reversed, the item has bigger id should be deleted first
+        del clust[lowestpair[1]]
+        del clust[lowestpair[0]]
+        clust.append(new_cluster)
+
+    return clust[0]
+    
+    
+    
+def printclust(clust, labels=None, n=0):
+    # indent to make a hierarchy layout
+    for i in range(n):
+        print ' ',
+        
+    if clust.id < 0:
+        # negative id means that this is branch
+        print '-'
+    else:
+        # positive id means that this is an endpoint
+        if labels is None:
+            print clust.id
+        else:
+            print labels[clust.id]
+
+    # now print the right and left branches
+    if clust.left is not None:
+        printclust(clust.left, labels=labels, n=n+1)
+    if clust.right is not None:
+        printclust(clust.right, labels=labels, n=n+1)
+        
+        
+def getheight(clust):
+    if clust is None:
+        return 0    # It is not necessary here because "clust" is always a full binary tree.
+    if (clust.left is None) and (clust.right is None):
+        return 1
+    return getheight(clust.left) + getheight(clust.right)
+
+    
+def getdepth(clust):
+    if (clust.left is None) and (clust.right is None):
+        return 0
+    return max(getdepth(clust.left), getdepth(clust.right)) + clust.distance
+
+
+def drawdendrogram(clust, labels, jpeg='clusters.jpg'):
+    width = 2048
+    height = getheight(clust) * 20
+    depth  = getdepth(clust)
+
+    scaling = float(width - 150) / depth
+    
+    img = Image.new('RGB', (width, height), (255, 255, 255))
+    draw = ImageDraw.Draw(img)
+    
+    draw.line((0, height/2, 10, height/2), fill=(255, 0, 0))
+    
+    drawnode(draw, clust, 10, height/2, scaling, labels)
+    img.save(jpeg, 'JPEG')
+
+    
+    
+def drawnode(draw, clust, x, y, scaling, labels):
+    if clust.id < 0:
+        h1 = getheight(clust.left) * 20
+        h2 = getheight(clust.right) * 20
+        top = y -(h1 + h2) / 2
+        bottom = y + (h1 + h2) / 2
+        # Line length
+        ll = clust.distance * scaling
+        # Vertical line from this cluster to children    
+        draw.line((x, top + h1/2, x, bottom - h2/2), fill=(255,0,0))    
+    
+        # Horizontal line to left item
+        draw.line((x, top + h1/2, x + ll, top + h1/2), fill=(255,0,0))    
+
+        # Horizontal line to right item
+        draw.line((x, bottom - h2/2, x + ll, bottom - h2/2), fill=(255,0,0))        
+
+        # Call the function to draw the left and right nodes    
+        drawnode(draw, clust.left, x + ll, top + h1/2, scaling, labels)
+        drawnode(draw, clust.right, x + ll, bottom - h2/2, scaling, labels)
+    else:   
+        # If this is an endpoint, draw the item label
+        draw.text((x + 5, y - 7), labels[clust.id], (0, 0, 0))
+
+
+def rotatematrix(data):
+    return map(list, zip(*data)) # list transposition 
+        
+if __name__ == '__main__':
+    rownames, colnames, data = readfile('blogdata.txt')
+    rdata = rotatematrix(data)
+    wordclust = hcluster(rdata)
+    drawdendrogram(wordclust, colnames, jpeg='wordclust.jpeg')
