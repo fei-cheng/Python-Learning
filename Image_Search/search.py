@@ -45,8 +45,28 @@ def calculate_pearson_similarity(p1, p2):
     den = sqrt((length * sum1Sq - pow(sum1, 2)) * (length * sum2Sq - pow(sum2, 2)))
     if den == 0:
         return 0
-    return num / den  
+    return num / den
 
+def calculate_cosine_similarity(p1, p2):
+    length = len(p1)
+    if length != len(p2):
+        raise
+
+    # Sums of the squares
+    sum1Sq = sum([pow(item, 2) for item in p1])
+    sum2Sq = sum([pow(item, 2) for item in p2])
+
+    # Sum of the products
+    pSum = 0
+    for index in range(length):
+        pSum += p1[index] * p2[index]
+        
+    # Calculate similarity
+    den = sqrt(sum1Sq * sum2Sq)
+    if den == 0:
+        return 0
+    return pSum / den
+    
 def is_image(filePath):
     return filePath.split(".")[-1] in suffixes
 
@@ -71,9 +91,10 @@ def search_image(src, tgtDir):
         filePath = os.path.join(tgtDir, item)
         if not is_image(filePath):
             continue
-        print 'comparing with ' + filePath + '......'
         imageColorHistogram = calculate_color_histogram(load_image(filePath))
+        # similarity = calculate_cosine_similarity(srcColorHistogram, imageColorHistogram)
         similarity = calculate_pearson_similarity(srcColorHistogram, imageColorHistogram)
+        print 'similarity: ', str(similarity) + ', comparing with ' + filePath + '......'
         if similarity >= maxSimilarity:
             targetPath = filePath
             maxSimilarity = similarity
@@ -82,5 +103,5 @@ def search_image(src, tgtDir):
 
 
 if __name__ == "__main__":
-    print search_image("src.jpg", "target")
+    print search_image("2009.jpg", "target")
 
